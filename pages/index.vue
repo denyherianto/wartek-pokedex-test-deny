@@ -1,93 +1,127 @@
 <template>
-  <v-row justify="center" align="center">
-    <v-col cols="12" sm="8" md="6">
-      <div class="text-center">
-        <logo />
-        <vuetify-logo />
-      </div>
-      <v-card>
-        <v-card-title class="headline">
-          Welcome to the Vuetify + Nuxt.js template
-        </v-card-title>
-        <v-card-text>
-          <p>
-            Vuetify is a progressive Material Design component framework for
-            Vue.js. It was designed to empower developers to create amazing
-            applications.
-          </p>
-          <p>
-            For more information on Vuetify, check out the
-            <a
-              href="https://vuetifyjs.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              documentation </a
-            >.
-          </p>
-          <p>
-            If you have questions, please join the official
-            <a
-              href="https://chat.vuetifyjs.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="chat"
-            >
-              discord </a
-            >.
-          </p>
-          <p>
-            Find a bug? Report it on the github
-            <a
-              href="https://github.com/vuetifyjs/vuetify/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="contribute"
-            >
-              issue board </a
-            >.
-          </p>
-          <p>
-            Thank you for developing with Vuetify and I look forward to bringing
-            more exciting features in the future.
-          </p>
-          <div class="text-xs-right">
-            <em><small>&mdash; John Leider</small></em>
-          </div>
-          <hr class="my-3" />
-          <a
-            href="https://nuxtjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Nuxt Documentation
-          </a>
-          <br />
-          <a
-            href="https://github.com/nuxt/nuxt.js"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Nuxt GitHub
-          </a>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn color="primary" nuxt to="/inspire"> Continue </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-col>
-  </v-row>
+  <div>
+    <v-app-bar :clipped-left="false" fixed app>
+      <v-toolbar-title v-text="title" />
+      <v-spacer></v-spacer>
+    </v-app-bar>
+    <v-main>
+      <template v-if="$nuxt.isOffline">
+        <v-container>
+          <v-row justify="center" align="center">
+            <v-col cols="12" justify="center" align="center">
+              <h2 class="mb-1">You're offline!</h2>
+              <h4 class="mb-5">See your saved items here!</h4>
+              <div>
+                <v-btn tag="nuxt-link" to="/bookmarks"> Bookmarks </v-btn>
+              </div>
+            </v-col>
+          </v-row>
+        </v-container>
+      </template>
+      <template v-else>
+        <v-container>
+          <v-row justify="center" align="center">
+            <v-col cols="12">
+              <v-row>
+                <v-col
+                  v-for="(item, key) in pokemons"
+                  :key="`pokemon-list-${key}`"
+                  cols="6"
+                  md="3"
+                >
+                  <nuxt-link :to="`/${item.name}`">
+                    <species-card :item="item" />
+                  </nuxt-link>
+                </v-col>
+              </v-row>
+            </v-col>
+          </v-row>
+
+          <client-only>
+            <infinite-loading
+              v-if="pokemons.length"
+              spinner="spiral"
+              @infinite="loadMore"
+            />
+          </client-only>
+        </v-container>
+      </template>
+    </v-main>
+  </div>
 </template>
 
-<script>
-import Logo from '~/components/Logo.vue'
-import VuetifyLogo from '~/components/VuetifyLogo.vue'
+<script lang="ts">
+import { Component, Vue } from 'nuxt-property-decorator'
+import InfiniteLoading from 'vue-infinite-loading'
+import SpeciesCard from '@/components/SpeciesCard.vue'
+import PokemonsQueryGQL from '@/apollo/queries/Pokemons.graphql'
+/* eslint-disable */
+import {
+  Pokemon_V2_Pokemon,
+  Query_RootPokemon_V2_PokemonArgs,
+} from '~/types/types'
+/* eslint-enable */
 
-export default {
-  components: {
-    Logo,
-    VuetifyLogo,
-  },
+const DEFAULT_LIMIT = 12
+const DEFAULT_PAGE = 1
+const DEFAULT_OFFSET = 0
+const DEFAULT_COUNT = 0
+
+@Component({
+  components: { SpeciesCard, InfiniteLoading },
+})
+export default class MainPage extends Vue {
+  // eslint-disable-next-line
+  pokemons: Array<Pokemon_V2_Pokemon> | object[] = []
+  title: String = 'PokeDex'
+  limit: number = DEFAULT_LIMIT
+  page: number = DEFAULT_PAGE
+  offset: number = DEFAULT_OFFSET
+  count: number = DEFAULT_COUNT
+  fetching: Boolean = false
+
+  async fetch() {
+    const client = this.$apollo.getClient()
+    const query = PokemonsQueryGQL
+    const variables = {
+      limit: DEFAULT_LIMIT,
+      offset: 0,
+    } as Query_RootPokemon_V2_PokemonArgs // eslint-disable-line
+    const { data } = await client.query({ query, variables })
+    const { pokemons, aggregate } = data
+    const { count } = aggregate.aggregate
+    this.pokemons = pokemons
+    this.count = count
+  }
+
+  async loadMore($state: any): Promise<void> {
+    if (this.fetching) return
+
+    this.fetching = true
+    this.offset = this.page * this.limit
+
+    try {
+      const client = this.$apollo.getClient()
+      const query = PokemonsQueryGQL
+      const variables = {
+        offset: this.offset,
+        limit: this.limit,
+      } as Query_RootPokemon_V2_PokemonArgs // eslint-disable-line
+      const { data } = await client.query({ query, variables })
+
+      if (data.pokemons.length) {
+        data.pokemons.forEach((pokemon: any) => {
+          this.pokemons.push(pokemon)
+        })
+        this.fetching = false
+        this.page++
+        $state.loaded()
+      } else {
+        $state.complete()
+      }
+    } catch (error: any) {
+      console.log(error)
+    }
+  }
 }
 </script>
