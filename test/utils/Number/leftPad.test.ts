@@ -1,4 +1,4 @@
-import leftPad from './leftPad'
+import leftPad from '@/utils/Number/leftPad'
 
 describe('Number -> #leftPad', () => {
   it.each([

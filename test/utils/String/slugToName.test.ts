@@ -1,4 +1,4 @@
-import slugToName from './slugToName'
+import slugToName from '@/utils/String/slugToName'
 
 describe('String -> #slugToName', () => {
   it.each([
