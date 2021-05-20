@@ -3,6 +3,9 @@
     <v-app-bar :clipped-left="false" fixed app>
       <v-toolbar-title v-text="title" />
       <v-spacer></v-spacer>
+      <v-btn icon tag="nuxt-link" to="/bookmarks">
+        <v-icon>mdi-book-multiple</v-icon>
+      </v-btn>
     </v-app-bar>
     <v-main>
       <template v-if="$nuxt.isOffline">
