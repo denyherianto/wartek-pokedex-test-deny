@@ -1,0 +1,18 @@
+query Pokemons($limit: Int, $offset: Int) {
+  pokemons: pokemon_v2_pokemon(limit: $limit, offset: $offset) {
+    id
+    name
+    order
+    types: pokemon_v2_pokemontypes {
+      type: pokemon_v2_type {
+        name
+        id
+      }
+    }
+  }
+  aggregate: pokemon_v2_pokemon_aggregate {
+    aggregate {
+      count
+    }
+  }
+}

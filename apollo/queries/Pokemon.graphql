@@ -1,0 +1,54 @@
+query Pokemon($name: String) {
+  pokemons: pokemon_v2_pokemonspecies(where: {name: {_eq: $name}}) {
+    id
+    pokemon: pokemon_v2_pokemons(where: {name: {_eq: $name}}) {
+      id
+      name
+      height
+      weight
+      abilities: pokemon_v2_pokemonabilities {
+        id
+        ability: pokemon_v2_ability {
+          id
+          name
+        }
+      }
+      moves: pokemon_v2_pokemonmoves{
+        id
+        move: pokemon_v2_move {
+          id
+          accuracy
+          name
+        }
+      }
+      stats: pokemon_v2_pokemonstats {
+        id
+        base_stat
+        stat: pokemon_v2_stat {
+          id
+          name
+        }
+      }
+      types: pokemon_v2_pokemontypes {
+        id
+        type: pokemon_v2_type {
+          id
+          name
+        }
+      }
+    }
+  	description: pokemon_v2_pokemonspeciesflavortexts(limit: 1) {
+      id
+      text: flavor_text
+    }
+    evolutions: pokemon_v2_evolutionchain {
+      species: pokemon_v2_pokemonspecies {
+        id
+        name
+        evolution: pokemon_v2_pokemonevolutions {
+          min_level
+        }
+      }
+    }
+  }
+}
